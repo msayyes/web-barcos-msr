@@ -55,7 +55,7 @@ async def radar_global_ais():
             suscripcion = {
                 "APIKey": AIS_API_KEY,
                 "BoundingBoxes": [[[-90.0, -180.0],[90.0, 180.0]]],
-                "FilterMessageTypes": ["PositionReport"]
+                "FilterMessageTypes": ["PositionReport", "ShipStaticData"]
             }
 
             async with websockets.connect(url_ais) as websocket:
@@ -88,10 +88,48 @@ async def radar_global_ais():
                             requests.patch(url_update, headers=HEADERS, json={
                                 "latitud": lat, "longitud": lon, "rumbo": rumbo, "ultima_senal": ahora
                             })
+
+                    elif datos.get("MessageType") == "ShipStaticData":
+                        mmsi = datos["MetaData"]["MMSI"]
+                        if mmsi in barcos_conocidos:
+                            barco = barcos_conocidos[mmsi]
+                            static = datos["Message"]["ShipStaticData"]
+                            destino = static.get("Destination", "").strip().upper()
+                            # Ignorar destinos vacíos o genéricos
+                            if destino and destino not in ("", "NONE", ".", "NOT DEFINED", "@@@@@@@@@"):
+                                eta_iso = construir_eta_ais(static.get("Eta"))
+                                payload = {"destino_declarado": destino}
+                                if eta_iso:
+                                    payload["eta_declarada"] = eta_iso
+                                requests.patch(
+                                    f"{SUPABASE_URL}/rest/v1/buques?id=eq.{barco['id']}",
+                                    headers=HEADERS, json=payload
+                                )
+                                print(f"🧭 [DESTINO AIS] {barco['nombre']} → {destino} | ETA: {eta_iso}")
+                        
                             
         except Exception as e:
             print(f"⚠️ Reconectando satélite en 5s... ({e})")
             await asyncio.sleep(5)
+
+def construir_eta_ais(eta_obj):
+    """Convierte el objeto ETA del AIS en timestamp ISO. El AIS no incluye año."""
+    if not eta_obj:
+        return None
+    try:
+        month  = eta_obj.get("Month", 0)
+        day    = eta_obj.get("Day", 0)
+        hour   = eta_obj.get("Hour", 0)
+        minute = eta_obj.get("Minute", 0)
+        if month == 0 or day == 0:
+            return None
+        ahora = datetime.now(timezone.utc)
+        eta = datetime(ahora.year, month, day, hour, minute, tzinfo=timezone.utc)
+        if eta < ahora:  # Si ya pasó este año, es el año que viene
+            eta = datetime(ahora.year + 1, month, day, hour, minute, tzinfo=timezone.utc)
+        return eta.isoformat()
+    except Exception:
+        return None
 
 if __name__ == "__main__":
     # Arrancamos la web fantasma en segundo plano
