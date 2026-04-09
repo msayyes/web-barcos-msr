@@ -13,7 +13,7 @@ import os
 # ==========================================
 SUPABASE_URL = "https://pozwondqqzurujbsanhn.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvendvbmRxcXp1cnVqYnNhbmhuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY4MDI2MiwiZXhwIjoyMDg4MjU2MjYyfQ.7sa0HnppwjWlZhh_cZRqcW-qMmlAex8vY3-4dNWFcRU"
-AIS_API_KEY = "ac1dbf25f46949cd4312c94235e5ccedb843a9a3"
+AIS_API_KEY = "20d9c426a6993500fd41857b0753aee5c2a6a6ed"
 
 HEADERS = {
     "apikey": SUPABASE_KEY,
